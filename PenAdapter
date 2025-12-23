@@ -1,0 +1,65 @@
+package com.example.officeapp
+
+import android.content.Context
+import android.content.Intent
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
+
+class PenAdapter(var pens: List<Pen>, var context: Context) : RecyclerView.Adapter<PenAdapter.MyViewHolder>() {
+
+    class MyViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val image: ImageView = view.findViewById(R.id.pen_image)
+        val name: TextView = view.findViewById(R.id.pen_name)
+        val price: TextView = view.findViewById(R.id.pen_price)
+        val quantity: TextView = view.findViewById(R.id.pen_quantity)
+    }
+
+    override fun onCreateViewHolder(
+        parent: ViewGroup,
+        viewType: Int
+    ): MyViewHolder {
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_pen, parent, false)
+        return MyViewHolder(view)
+    }
+
+    override fun onBindViewHolder(
+        holder: MyViewHolder,
+        position: Int
+    ) {
+        val pen = pens[position]
+        holder.name.text = pens[position].name
+        holder.price.text = "${pens[position].price} руб."
+        holder.quantity.text = "${pens[position].quantity} штук"
+
+        var imageName = when (pen.id) {
+            1 -> "pen1"
+            2 -> "pen2"
+            3 -> "pen3"
+            else -> "p_default"
+        }
+
+        var imageId = context.resources.getIdentifier(
+            imageName,
+            "drawable",
+            context.packageName
+        )
+
+        holder.image.setImageResource(imageId)
+
+        holder.image.setOnClickListener {
+            val intent = Intent(context, PenDesc::class.java)
+            intent.putExtra("penName", pen.name)
+            intent.putExtra("penPrice", "${pen.price} руб.")
+            intent.putExtra("penQuantity", "${pen.quantity} штук")
+            intent.putExtra("penImageId", imageId)
+            context.startActivity(intent)
+        }
+    }
+        override fun getItemCount(): Int {
+            return pens.count()
+        }
+}
