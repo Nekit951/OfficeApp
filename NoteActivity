@@ -1,0 +1,38 @@
+package com.example.officeapp
+
+import android.content.Intent
+import android.os.Bundle
+import android.util.Log
+import android.widget.ImageView
+import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+
+class NoteActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        Log.d("DEBUG", "NoteActivity.onCreate() вызван")
+        enableEdgeToEdge()
+        setContentView(R.layout.activity_note)
+        Log.d("DEBUG", "Layout установлен: activity_note")
+        android.widget.Toast.makeText(this, "Каталог тетрадей открыт!",
+            android.widget.Toast.LENGTH_LONG).show()
+
+        val noteList: RecyclerView = findViewById(R.id.noteList)
+        val notebooks = arrayListOf<Notebook>()
+
+        notebooks.add(Notebook(1, "Тетрадь 1", 120, 67))
+        notebooks.add(Notebook(2, "Тетрадь 2", 93 ,77))
+        notebooks.add(Notebook(3, "Тетрадь 3", 89, 84))
+
+        noteList.layoutManager = LinearLayoutManager(this)
+        noteList.adapter = NotebookAdapter(notebooks, this)
+
+        val vector_back: ImageView = findViewById(R.id.vector_back)
+        vector_back.setOnClickListener {
+            val intent = Intent(this, StoreActivity::class.java)
+            startActivity(intent)
+        }
+    }
+}
