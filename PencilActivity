@@ -1,0 +1,38 @@
+package com.example.officeapp
+
+import android.content.Intent
+import android.os.Bundle
+import android.util.Log
+import android.widget.ImageView
+import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+
+class PencilActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        Log.d("DEBUG", "PencilActivity.onCreate() вызван")
+        enableEdgeToEdge()
+        setContentView(R.layout.activity_pencil)
+        Log.d("DEBUG", "Layout установлен: activity_pencil")
+        android.widget.Toast.makeText(this, "Каталог карандашей открыт!",
+            android.widget.Toast.LENGTH_LONG).show()
+
+        val pencilList: RecyclerView = findViewById(R.id.pencilList)
+        val pencils = arrayListOf<Pencil>()
+
+        pencils.add(Pencil(1, "Карандаш 1", 94, 46))
+        pencils.add(Pencil(2, "Карандаш 2", 70 ,55))
+        pencils.add(Pencil(3, "Карандаш 3", 85, 60))
+
+        pencilList.layoutManager = LinearLayoutManager(this)
+        pencilList.adapter = PencilAdapter(pencils, this)
+
+        val vector_back: ImageView = findViewById(R.id.vector_back)
+        vector_back.setOnClickListener {
+            val intent = Intent(this, StoreActivity::class.java)
+            startActivity(intent)
+        }
+    }
+}
