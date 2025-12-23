@@ -1,0 +1,462 @@
+package com.example.officeapp
+
+import android.annotation.SuppressLint
+import android.content.Intent
+import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.util.Log
+import android.view.View
+import android.widget.EditText
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.RelativeLayout
+import android.widget.TextView
+import android.widget.HorizontalScrollView
+import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
+
+class StoreActivity : AppCompatActivity() {
+
+    // Общий список для хранения всех товаров магазина
+    private val allProductList = arrayListOf<ProductItem>()
+
+    // Объявляем поле для поиска (находим в onCreate)
+    private lateinit var searchBar: EditText
+
+    // Вспомогательный класс для представления любого товара
+    data class ProductItem(
+        val id: Int,
+        val name: String,
+        val price: Int,
+        val quantity: Int,
+        val category: String, // "pen", "pencil", "notebook"
+        val imageResId: Int // ID ресурса изображения
+    )
+
+    @SuppressLint("MissingInflatedId")
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        Log.d("DEBUG", "StoreActivity.onCreate() вызван")
+        enableEdgeToEdge()
+        setContentView(R.layout.activity_store)
+        Log.d("DEBUG", "Layout установлен: activity_store")
+        android.widget.Toast.makeText(this, "Магазин канцтоваров открыт!",
+            android.widget.Toast.LENGTH_LONG).show()
+
+        // Находим поле поиска по ID
+        searchBar = findViewById(R.id.search_bar)
+
+        val pen = arrayListOf<Pen>()
+        val pencil = arrayListOf<Pencil>()
+        val notebook = arrayListOf<Notebook>()
+        val vector_pen: ImageView = findViewById(R.id.vector_pen)
+        val vector_pencil: ImageView = findViewById(R.id.vector_pencil)
+        val vector_note: ImageView = findViewById(R.id.vector_note)
+
+        pen.add(Pen(1, "Ручка 1", 100, 50))
+        pen.add(Pen(2, "Ручка 2", 90 ,40))
+        pen.add(Pen(3, "Ручка 3", 80, 45))
+
+        pencil.add(Pencil(1, "Карандаш 1", 94, 46))
+        pencil.add(Pencil(2, "Карандаш 2", 70, 55))
+        pencil.add(Pencil(3, "Карандаш 3", 85, 60))
+
+        notebook.add(Notebook(1, "Тетрадь 1", 120, 67))
+        notebook.add(Notebook(2, "Тетрадь 2", 93, 77))
+        notebook.add(Notebook(3, "Тетрадь 3", 89, 84))
+
+        vector_pen.setOnClickListener {
+            val intent = Intent(this, PenActivity::class.java)
+            startActivity(intent)
+        }
+
+        vector_pencil.setOnClickListener {
+            val intent = Intent(this, PencilActivity::class.java)
+            startActivity(intent)
+        }
+
+        vector_note.setOnClickListener {
+            val intent = Intent(this, NoteActivity::class.java)
+            startActivity(intent)
+        }
+
+        // 1. Инициализация общего списка товаров
+        initAllProductsList(pen, pencil, notebook)
+
+        // 2. Настройка слушателя для поля поиска
+        setupSearchBarListener()
+
+        // 3. Добавляем обработчики кликов на изображения товаров
+        setupPenClickListeners()
+        setupPencilClickListeners()
+        setupNotebookClickListeners()
+    }
+
+    /**
+     * Заполняет общий список allProductList данными из всех категорий.
+     */
+    private fun initAllProductsList(
+        pens: ArrayList<Pen>,
+        pencils: ArrayList<Pencil>,
+        notebooks: ArrayList<Notebook>
+    ) {
+        allProductList.clear()
+
+        // Добавляем ручки
+        pens.forEachIndexed { index, pen ->
+            val imageResId = when (index) {
+                0 -> R.drawable.pen1
+                1 -> R.drawable.pen2
+                else -> R.drawable.pen3
+            }
+            allProductList.add(ProductItem(pen.id, pen.name, pen.price, pen.quantity, "pen", imageResId))
+        }
+
+        // Добавляем карандаши
+        pencils.forEachIndexed { index, pencil ->
+            val imageResId = when (index) {
+                0 -> R.drawable.pencil1
+                1 -> R.drawable.pencil2
+                else -> R.drawable.pencil3
+            }
+            allProductList.add(ProductItem(pencil.id, pencil.name, pencil.price, pencil.quantity, "pencil", imageResId))
+        }
+
+        // Добавляем тетради
+        notebooks.forEachIndexed { index, notebook ->
+            val imageResId = when (index) {
+                0 -> R.drawable.notebook1
+                1 -> R.drawable.notebook2
+                else -> R.drawable.notebook3
+            }
+            allProductList.add(ProductItem(notebook.id, notebook.name, notebook.price, notebook.quantity, "notebook", imageResId))
+        }
+
+        Log.d("DEBUG", "Общий список товаров инициализирован. Всего: ${allProductList.size} товаров.")
+    }
+
+    /**
+     * Настраивает слушатель текста для поля поиска.
+     * Реализует "живой поиск" - фильтрацию при каждом изменении текста.
+     */
+    private fun setupSearchBarListener() {
+        searchBar.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+                // Не используется
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                // Вызываем фильтрацию при каждом изменении текста
+                filterProducts(s.toString())
+            }
+
+            override fun afterTextChanged(s: Editable?) {
+                // Не используется
+            }
+        })
+    }
+
+    /**
+     * Фильтрует товары по запросу и обновляет видимость элементов на экране.
+     * @param query Строка поиска (название товара)
+     */
+    private fun filterProducts(query: String) {
+        val searchQuery = query.lowercase().trim()
+
+        Log.d("DEBUG", "Поисковый запрос: '$searchQuery'")
+
+        // 1. Если запрос пустой, показать ВСЕ товары
+        if (searchQuery.isEmpty()) {
+            showAllProducts()
+            Log.d("DEBUG", "Запрос пуст. Отображены все товары.")
+            return
+        }
+
+        // 2. Фильтруем общий список товаров
+        val filteredList = allProductList.filter { product ->
+            product.name.lowercase().contains(searchQuery)
+        }
+
+        Log.d("DEBUG", "Найдено ${filteredList.size} товаров.")
+
+        // 3. На основе отфильтрованного списка обновляем видимость на экране
+        updateUIForFilteredList(filteredList)
+    }
+
+    /**
+     * Показывает все товары, сбрасывая фильтр.
+     */
+    private fun showAllProducts() {
+        // Делаем видимыми все контейнеры и товары
+        findViewById<RelativeLayout>(R.id.pen).visibility = View.VISIBLE
+        findViewById<HorizontalScrollView>(R.id.pen_horizontal_scroll).visibility = View.VISIBLE
+        showAllProductsInCategory("pen")
+
+        findViewById<RelativeLayout>(R.id.pencil).visibility = View.VISIBLE
+        findViewById<HorizontalScrollView>(R.id.pencil_horizontal_scroll).visibility = View.VISIBLE
+        showAllProductsInCategory("pencil")
+
+        findViewById<RelativeLayout>(R.id.notebooks).visibility = View.VISIBLE
+        findViewById<HorizontalScrollView>(R.id.notebooks_horizontal_scroll).visibility = View.VISIBLE
+        showAllProductsInCategory("notebook")
+    }
+
+    /**
+     * Показывает все товары в конкретной категории
+     */
+    private fun showAllProductsInCategory(category: String) {
+        for (position in 1..3) {
+            val containerId = resources.getIdentifier("${category}${position}_container", "id", packageName)
+            val container = findViewById<LinearLayout>(containerId)
+            container?.visibility = View.VISIBLE
+        }
+    }
+
+    /**
+     * Обновляет интерфейс на основе отфильтрованного списка товаров.
+     * Скрывает/показывает целые категории и отдельные товары.
+     */
+    private fun updateUIForFilteredList(filteredList: List<ProductItem>) {
+        // Группируем отфильтрованные товары по категориям
+        val filteredPens = filteredList.filter { it.category == "pen" }
+        val filteredPencils = filteredList.filter { it.category == "pencil" }
+        val filteredNotebooks = filteredList.filter { it.category == "notebook" }
+
+        // Обновляем видимость секций (если в категории нет товаров, скрываем всю секцию)
+        updateCategorySectionVisibility(R.id.pen, R.id.pen_horizontal_scroll, filteredPens)
+        updateCategorySectionVisibility(R.id.pencil, R.id.pencil_horizontal_scroll, filteredPencils)
+        updateCategorySectionVisibility(R.id.notebooks, R.id.notebooks_horizontal_scroll, filteredNotebooks)
+
+        // Обновляем видимость и данные конкретных товаров внутри каждой видимой секции
+        updateProductItemsInSection(filteredPens, "pen")
+        updateProductItemsInSection(filteredPencils, "pencil")
+        updateProductItemsInSection(filteredNotebooks, "notebook")
+    }
+
+    /**
+     * Управляет видимостью всей категории (заголовок и горизонтальная прокрутка).
+     */
+    private fun updateCategorySectionVisibility(
+        sectionId: Int,
+        scrollViewId: Int,
+        filteredItemsInCategory: List<ProductItem>
+    ) {
+        val sectionLayout = findViewById<RelativeLayout>(sectionId)
+        val scrollView = findViewById<HorizontalScrollView>(scrollViewId)
+
+        if (filteredItemsInCategory.isEmpty()) {
+            // Если в категории нет подходящих товаров, скрываем её
+            sectionLayout.visibility = View.GONE
+            scrollView.visibility = View.GONE
+        } else {
+            // Иначе показываем
+            sectionLayout.visibility = View.VISIBLE
+            scrollView.visibility = View.VISIBLE
+        }
+    }
+
+    /**
+     * Обновляет видимость и данные отдельных товаров внутри секции.
+     */
+    private fun updateProductItemsInSection(filteredItems: List<ProductItem>, category: String) {
+        // Определяем, сколько всего товаров может быть в этой секции (в вашем случае всегда 3)
+        val totalItemsInSection = 3
+
+        for (position in 1..totalItemsInSection) {
+            // Находим ID контейнера товара
+            val containerId = resources.getIdentifier("${category}${position}_container", "id", packageName)
+            val container = findViewById<LinearLayout>(containerId)
+
+            if (container != null) {
+                // Пытаемся найти этот товар в отфильтрованном списке
+                val productInList = filteredItems.firstOrNull { it.id == position }
+
+                if (productInList != null) {
+                    // Если товар прошел фильтр - показываем
+                    container.visibility = View.VISIBLE
+                } else {
+                    // Если товар не прошел фильтр - скрываем
+                    container.visibility = View.GONE
+                }
+            }
+        }
+    }
+
+    private fun setupPenClickListeners() {
+        val pen1Image: ImageView = findViewById(R.id.pen1)
+        val pen2Image: ImageView = findViewById(R.id.pen2)
+        val pen3Image: ImageView = findViewById(R.id.pen3)
+
+        val pen1Name: TextView = findViewById(R.id.pen1_name)
+        val pen1Price: TextView = findViewById(R.id.pen1_price)
+        val pen1Quantity: TextView = findViewById(R.id.pen1_quantity)
+
+        val pen2Name: TextView = findViewById(R.id.pen2_name)
+        val pen2Price: TextView = findViewById(R.id.pen2_price)
+        val pen2Quantity: TextView = findViewById(R.id.pen2_quantity)
+
+        val pen3Name: TextView = findViewById(R.id.pen3_name)
+        val pen3Price: TextView = findViewById(R.id.pen3_price)
+        val pen3Quantity: TextView = findViewById(R.id.pen3_quantity)
+
+        pen1Image.setOnClickListener {
+            openPenDesc(
+                name = pen1Name.text.toString(),
+                price = pen1Price.text.toString(),
+                quantity = pen1Quantity.text.toString(),
+                imageId = R.drawable.pen1
+            )
+        }
+
+        pen2Image.setOnClickListener {
+            openPenDesc(
+                name = pen2Name.text.toString(),
+                price = pen2Price.text.toString(),
+                quantity = pen2Quantity.text.toString(),
+                imageId = R.drawable.pen2
+            )
+        }
+
+        pen3Image.setOnClickListener {
+            openPenDesc(
+                name = pen3Name.text.toString(),
+                price = pen3Price.text.toString(),
+                quantity = pen3Quantity.text.toString(),
+                imageId = R.drawable.pen3
+            )
+        }
+    }
+
+    private fun setupPencilClickListeners() {
+        val pencil1Image: ImageView = findViewById(R.id.pencil1)
+        val pencil2Image: ImageView = findViewById(R.id.pencil2)
+        val pencil3Image: ImageView = findViewById(R.id.pencil3)
+
+        val pencil1Name: TextView = findViewById(R.id.pencil1_name)
+        val pencil1Price: TextView = findViewById(R.id.pencil1_price)
+        val pencil1Quantity: TextView = findViewById(R.id.pencil1_quantity)
+
+        val pencil2Name: TextView = findViewById(R.id.pencil2_name)
+        val pencil2Price: TextView = findViewById(R.id.pencil2_price)
+        val pencil2Quantity: TextView = findViewById(R.id.pencil2_quantity)
+
+        val pencil3Name: TextView = findViewById(R.id.pencil3_name)
+        val pencil3Price: TextView = findViewById(R.id.pencil3_price)
+        val pencil3Quantity: TextView = findViewById(R.id.pencil3_quantity)
+
+        pencil1Image.setOnClickListener {
+            openPencilDesc(
+                name = pencil1Name.text.toString(),
+                price = pencil1Price.text.toString(),
+                quantity = pencil1Quantity.text.toString(),
+                imageId = R.drawable.pencil1
+            )
+        }
+
+        pencil2Image.setOnClickListener {
+            openPencilDesc(
+                name = pencil2Name.text.toString(),
+                price = pencil2Price.text.toString(),
+                quantity = pencil2Quantity.text.toString(),
+                imageId = R.drawable.pencil2
+            )
+        }
+
+        pencil3Image.setOnClickListener {
+            openPencilDesc(
+                name = pencil3Name.text.toString(),
+                price = pencil3Price.text.toString(),
+                quantity = pencil3Quantity.text.toString(),
+                imageId = R.drawable.pencil3
+            )
+        }
+    }
+
+    private fun setupNotebookClickListeners() {
+        val notebook1Image: ImageView = findViewById(R.id.notebook1)
+        val notebook2Image: ImageView = findViewById(R.id.notebook2)
+        val notebook3Image: ImageView = findViewById(R.id.notebook3)
+
+        val notebook1Name: TextView = findViewById(R.id.notebook1_name)
+        val notebook1Price: TextView = findViewById(R.id.notebook1_price)
+        val notebook1Quantity: TextView = findViewById(R.id.notebook1_quantity)
+
+        val notebook2Name: TextView = findViewById(R.id.notebook2_name)
+        val notebook2Price: TextView = findViewById(R.id.notebook2_price)
+        val notebook2Quantity: TextView = findViewById(R.id.notebook2_quantity)
+
+        val notebook3Name: TextView = findViewById(R.id.notebook3_name)
+        val notebook3Price: TextView = findViewById(R.id.notebook3_price)
+        val notebook3Quantity: TextView = findViewById(R.id.notebook3_quantity)
+
+        notebook1Image.setOnClickListener {
+            openNotebookDesc(
+                name = notebook1Name.text.toString(),
+                price = notebook1Price.text.toString(),
+                quantity = notebook1Quantity.text.toString(),
+                imageId = R.drawable.notebook1
+            )
+        }
+
+        notebook2Image.setOnClickListener {
+            openNotebookDesc(
+                name = notebook2Name.text.toString(),
+                price = notebook2Price.text.toString(),
+                quantity = notebook2Quantity.text.toString(),
+                imageId = R.drawable.notebook2
+            )
+        }
+
+        notebook3Image.setOnClickListener {
+            openNotebookDesc(
+                name = notebook3Name.text.toString(),
+                price = notebook3Price.text.toString(),
+                quantity = notebook3Quantity.text.toString(),
+                imageId = R.drawable.notebook3
+            )
+        }
+    }
+
+    private fun openPenDesc(name: String, price: String, quantity: String, imageId: Int) {
+        val intent = Intent(this, PenDesc::class.java).apply {
+            putExtra("penName", name)
+            putExtra("penPrice", price)
+            putExtra("penQuantity", quantity)
+            putExtra("penImageId", imageId)
+        }
+        startActivity(intent)
+    }
+
+    private fun openPencilDesc(name: String, price: String, quantity: String, imageId: Int) {
+        val intent = Intent(this, PencilDesc::class.java).apply {
+            putExtra("pencilName", name)
+            putExtra("pencilPrice", price)
+            putExtra("pencilQuantity", quantity)
+            putExtra("pencilImageId", imageId)
+        }
+        startActivity(intent)
+    }
+
+    private fun openNotebookDesc(name: String, price: String, quantity: String, imageId: Int) {
+        val intent = Intent(this, NotebookDesc::class.java).apply {
+            putExtra("notebookName", name)
+            putExtra("notebookPrice", price)
+            putExtra("notebookQuantity", quantity)
+            putExtra("notebookImageId", imageId)
+        }
+        startActivity(intent)
+    }
+
+    private fun openBuyActivity(name: String, price: String, imageId: Int) {
+        val intent = Intent(this, BuyActivity::class.java).apply {
+            putExtra("productName", name)
+            putExtra("productPrice", price)
+            putExtra("productImageId", imageId)
+            // Можно добавить другие данные:
+            // putExtra("productId", id)
+            // putExtra("maxQuantity", maxQuantity)
+        }
+        startActivity(intent)
+    }
+}
