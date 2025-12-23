@@ -1,0 +1,66 @@
+package com.example.officeapp
+
+import android.content.Context
+import android.content.Intent
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
+
+class PencilAdapter(var pencils: List<Pencil>, var context: Context) : RecyclerView.Adapter<PencilAdapter.MyViewHolder>() {
+
+    class MyViewHolder(view: View): RecyclerView.ViewHolder(view){
+        val image: ImageView = view.findViewById(R.id.pencil_image)
+        val name: TextView = view.findViewById(R.id.pencil_name)
+        val price: TextView = view.findViewById(R.id.pencil_price)
+        val quantity: TextView = view.findViewById(R.id.pencil_quantity)
+    }
+
+    override fun onCreateViewHolder(
+        parent: ViewGroup,
+        viewType: Int
+    ): MyViewHolder {
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_pencil, parent, false)
+        return MyViewHolder(view)
+    }
+
+    override fun onBindViewHolder(
+        holder: MyViewHolder,
+        position: Int
+    ) {
+        val pencil = pencils[position]
+        holder.name.text = pencils[position].name
+        holder.price.text = "${pencils[position].price} руб."
+        holder.quantity.text = "${pencils[position].quantity} штук"
+
+        var imageName = when (pencil.id) {
+            1 -> "pencil1"
+            2 -> "pencil2"
+            3 -> "pencil3"
+            else -> "p_default"
+        }
+
+        var imageId = context.resources.getIdentifier(
+            imageName,
+            "drawable",
+            context.packageName
+        )
+
+        holder.image.setImageResource(imageId)
+
+        holder.image.setOnClickListener {
+            val intent = Intent(context, PencilDesc::class.java)
+            intent.putExtra("pencilName", pencil.name)
+            intent.putExtra("pencilPrice", "${pencil.price} руб.")
+            intent.putExtra("pencilQuantity", "${pencil.quantity} штук")
+            intent.putExtra("pencilImageId", imageId)
+            context.startActivity(intent)
+        }
+    }
+
+    override fun getItemCount(): Int {
+        return pencils.count()
+    }
+}
