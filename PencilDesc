@@ -1,0 +1,62 @@
+package com.example.officeapp
+
+import android.content.Intent
+import android.os.Bundle
+import android.util.Log
+import android.widget.Button
+import android.widget.ImageView
+import android.widget.TextView
+import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
+
+
+class PencilDesc : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        Log.d("DEBUG", "PencilDesc.onCreate() вызван")
+        enableEdgeToEdge()
+        setContentView(R.layout.activity_pencil_desc)
+        Log.d("DEBUG", "Layout установлен: activity_pencil_desc")
+
+        val name: TextView = findViewById(R.id.pencil_name)
+        val price: TextView = findViewById(R.id.pencil_price)
+        val quantity: TextView = findViewById(R.id.pencil_quantity)
+        val imageView: ImageView = findViewById(R.id.pencil_image)
+
+        // Устанавливаем изображение
+        val imageId = intent.getIntExtra("pencilImageId", 0)
+        if (imageId != 0) {
+            imageView.setImageResource(imageId)
+            Log.d("DEBUG", "Изображение установлено с ID: $imageId")
+        } else {
+            Log.d("DEBUG", "ID изображения не получен")
+            // Установите изображение по умолчанию
+            imageView.setImageResource(R.drawable.p_default)
+        }
+
+        name.text = intent.getStringExtra("pencilName")
+        price.text = intent.getStringExtra("pencilPrice")
+        quantity.text = intent.getStringExtra("pencilQuantity")
+
+        val vector_back: ImageView = findViewById(R.id.vector_back)
+        vector_back.setOnClickListener {
+            val intent = Intent(this, PencilActivity::class.java)
+            startActivity(intent)
+        }
+
+        val button_buy: Button = findViewById(R.id.button_buy)
+        button_buy.setOnClickListener {
+            val intent = Intent(this, BuyActivity::class.java)
+            startActivity(intent)
+        }
+    }
+
+    private fun openBuyActivity(name: String, price: String, imageId: Int) {
+        val intent = Intent(this, BuyActivity::class.java).apply {
+            putExtra("productName", name)
+            putExtra("productPrice", price)
+            putExtra("productImageId", imageId)
+        }
+        startActivity(intent)
+    }
+}
